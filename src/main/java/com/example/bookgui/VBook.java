@@ -1,5 +1,7 @@
 package com.example.bookgui;
 
+import javafx.event.Event;
+import javafx.event.EventType;
 import javafx.geometry.Pos;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.Label;
@@ -8,41 +10,31 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
 public class VBook {
-    static int vBookCount = 0;
+    public static int vBookCount = 0;
 
     private Book book;
 
-
-    private final int UID;
-    private boolean selected;
+    // It makes sense to me to set this to be public and directly access since it's final and cannot be changed.
 
     public VBook(Book book) {
         this.book = book;
-        UID = (int) (Math.random() * 1000);
+        System.out.println("Generated new book " + book.toString());
     }
 
-    public void select() {
-        selected = true;
-    }
 
-    public void deselect() {
-        selected = false;
-    }
-
-    public boolean isSelected() { return selected; }
+    public boolean isSelected() { return book.isSelected(); }
 
     public VBox box() {
         VBox bookBox = new VBox();
         bookBox.setAlignment(Pos.CENTER);
 
-        Color borderColor = selected ? Color.CORNFLOWERBLUE : Color.BLACK;
-
-        System.out.println(selected);
+        Color borderColor = book.isSelected() ? Color.CORNFLOWERBLUE : Color.BLACK;
 
         Label lTitle = new Label(book.getTitle());
-        Label lCondition = new Label(book.getCondition().toString());
+        Label lCondition = new Label(book.getConditionString());
         Label lAuthor = new Label(book.getAuthor());
         Label lStatus = new Label(book.getStatus().toString());
+        Label lId = new Label(book.UID);
 
         Rectangle coverImage = new Rectangle();
         coverImage.setWidth(150);
@@ -50,7 +42,7 @@ public class VBook {
         coverImage.setStrokeWidth(3);
         coverImage.setStroke(borderColor);
 
-        bookBox.getChildren().addAll(lTitle,lCondition,coverImage,lStatus);
+        bookBox.getChildren().addAll(lTitle, lAuthor, coverImage, lStatus, lCondition, lId);
 
         bookBox.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> {
             coverImage.setStroke(Color.CORNFLOWERBLUE);
@@ -58,6 +50,17 @@ public class VBook {
 
         bookBox.addEventHandler(MouseEvent.MOUSE_EXITED, e -> {
             coverImage.setStroke(borderColor);
+        });
+
+        bookBox.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            if (isSelected()) {
+                Book.clearSelected();
+                return;
+            }
+
+            book.select();
+            System.out.println("Selected");
+            System.out.println(Book.selectedBook.UID);
         });
 
         return bookBox;

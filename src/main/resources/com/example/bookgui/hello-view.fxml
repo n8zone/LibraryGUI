@@ -27,7 +27,7 @@
          <TextField fx:id="authorInput" promptText="Book Author" />
          <TextField fx:id="titleInput" promptText="Book Title" />
          <TextField fx:id="priceInput" promptText="Price" />
-          <Button onAction="#onHelloButtonClick" text="Add Book" />
+          <Button fx:id="addBookBtn" onAction="#onSaveButtonClick" text="Add Book" />
       </children>
    </HBox>
 </VBox>

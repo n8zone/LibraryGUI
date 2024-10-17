@@ -2,10 +2,7 @@ package com.example.bookgui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TextFormatter;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -17,27 +14,28 @@ import java.util.ResourceBundle;
 
 
 // TODO: Eventually refactor Book.Condition into its own enum
+
 public class HelloController implements Initializable {
+
     Book book1 = new Book("Jeremy Kubica","Data Structures The Fun Way", 39.99);
     Book book2 = new Book("Ronald T Kneusel", "Math For Deep Learning", 49.99);
     Book book3 = new Book("Matthew Dicks", "Storyworthy", 12.99);
 
 
     // This is disgusting
-    private ArrayList<Book> books = new ArrayList<>();
-    private ArrayList<VBook> vBooks = new ArrayList<>();
 
-    private Book selectedBook = null;
+    private String selectedUID = "";
 
     private final TextFormatter<Object> numericInput = new TextFormatter<>(change -> {
         String newText = change.getControlNewText();
-        if (newText.matches("\\d*(\\.\\d*)?")) {
+        if (newText.matches("\\d*(\\.\\d{0,2})?")) {
             return change;
         } else {
             return null;
         }
     });
 
+    public Button addBookBtn;
     public HBox bookControl;
     public HBox boxTest;
     @FXML
@@ -55,16 +53,10 @@ public class HelloController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        books.add(book1);
-        books.add(book2);
-        books.add(book3);
-
-        // This code is terrible.
-        for (Book b : books) { vBooks.add(new VBook(b)); }
 
         displayBooks();
         cb = new ChoiceBox<Book.Condition>();
-        cb.getItems().addAll(Book.Condition.values());
+        cb.getItems().addAll(Book.Condition.stringValues());
         cb.setValue(cb.getItems().getFirst());
         bookControl.getChildren().add(cb);
 
@@ -72,65 +64,38 @@ public class HelloController implements Initializable {
     }
 
 
-
+    // This function is doing too much. It shouldn't control book selection so directly.
     private void displayBooks() {
-        if ( books.isEmpty() ) {
+        if ( Book.allBooks.isEmpty() ) {
             Label emptyLbl = new Label("Library is empty!");
             boxTest.getChildren().add(emptyLbl);
         }
 
-        for (int i = 0; i < vBooks.size(); i++) {
-            // Could it be the method to abstract this into a method that returns the VBox?
-            VBook b = vBooks.get(i);
-            final int bookId = i; // THIS CANNOT BE WHERE WE STORE BOOKID
+        for (Book b : Book.allBooks) {
+            VBox bookBox = b.getVBook().box();
 
-            VBox bookBox = b.box();
-
+            // This event listener is really waiting for selectedBook to update
             bookBox.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
-
-                if (e.getButton() == MouseButton.PRIMARY) {
-                    System.out.println("Open editing dialogue");
-
-                    if (b.isSelected()) {
-                        b.deselect();
-                        selectedBook = null;
-                    } else {
-                        for (VBook vb : vBooks) { vb.deselect(); }
-                        b.select();
-                        selectedBook = b.getBook();
-                    }
-
-                    populateEditFields();
-                } else {
-                    System.out.println("Quick delete");
-
-                    if (selectedBook == vBooks.get(bookId).getBook()) {
-                        selectedBook = null;
-                        vBooks.get(bookId).deselect();
-                    }
-
-                    books.remove(bookId);
-                    vBooks.remove(bookId);
-                }
-
                 refreshBooks();
+                populateEditFields();
             });
-
             boxTest.getChildren().add(bookBox);
         }
     }
 
     private void populateEditFields() {
+        Book b = Book.selectedBook;
 
-        if (selectedBook == null) {
+        if (b == null) {
             clearInput();
             return;
         }
 
-        authorInput.setText(selectedBook.getAuthor());
-        titleInput.setText(selectedBook.getTitle());
-        priceInput.setText(Double.toString(selectedBook.getPrice()));
-        cb.setValue(selectedBook.getCondition());
+        addBookBtn.setText("Save Changes");
+        authorInput.setText(b.getAuthor());
+        titleInput.setText(b.getTitle());
+        priceInput.setText(String.format("%.2f", b.getPrice()));
+        cb.setValue(b.getConditionString());
     }
 
     private void clearBooks() {
@@ -143,8 +108,7 @@ public class HelloController implements Initializable {
     }
 
     private void addBook(Book newBook) {
-        books.add(newBook);
-        vBooks.add(new VBook(newBook));
+        Book.addBook(newBook);
         refreshBooks();
     }
 
@@ -152,27 +116,28 @@ public class HelloController implements Initializable {
         authorInput.clear();
         titleInput.clear();
         priceInput.clear();
+        addBookBtn.setText("Add Book");
     }
 
     // One day I'll rename this to what it actually is!
     @FXML
-    protected void onHelloButtonClick() {
+    protected void onSaveButtonClick() {
         String author = authorInput.getText();
         String title = titleInput.getText();
         double price = Double.parseDouble(priceInput.getText());
-        Book.Condition condition = (Book.Condition) cb.getValue();
+        Book.Condition condition = Book.Condition.toCondition(cb.getValue().toString());
 
-
+        Book selectedBook = Book.selectedBook;
         if (selectedBook != null) {
             selectedBook.setAuthor(author);
             selectedBook.setTitle(title);
             selectedBook.setPrice(price);
             selectedBook.setCondition(condition);
-            selectedBook = null;
+            Book.clearSelected();
         } else {
-            Book testBook = new Book(author, title, price);
-            testBook.setCondition(condition);
-            addBook(testBook);
+            Book newBook = new Book(author, title, price);
+            newBook.setCondition(condition);
+            addBook(newBook);
         }
 
         clearInput();

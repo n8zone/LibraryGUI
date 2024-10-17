@@ -1,6 +1,7 @@
 package com.example.bookgui;
 
 
+import java.util.ArrayList;
 
 public class Book {
     enum Condition {
@@ -10,10 +11,54 @@ public class Book {
         FAIR,
         POOR;
 
+        // Could I abstract this using generics?
         public static Condition random() {
             Condition[] allValues = Condition.values();
             int choiceIndex = (int) Math.floor(Math.random() * allValues.length);
             return allValues[choiceIndex];
+        }
+
+        public static String toConditionString(Condition condition) {
+            String words[] = condition.toString().split("\\_");
+            String finalString = "";
+
+            for (String s : words) {
+                String temp = s.toLowerCase();
+                temp = temp.substring(0,1).toUpperCase() + temp.substring(1).replace('_', ' ');
+                finalString += temp + " ";
+            }
+
+            return finalString.strip();
+        }
+
+        public static Condition toCondition(String conditionString) {
+            conditionString = conditionString.toUpperCase();
+            switch (conditionString) {
+                case "EXCELLENT":
+                    return EXCELLENT;
+                case "VERY_GOOD", "VERY GOOD":
+                    return VERY_GOOD;
+                case "GOOD":
+                    return GOOD;
+                case "FAIR":
+                    return FAIR;
+                case "POOR":
+                    return POOR;
+                default:
+                    return null;
+            }
+        }
+
+        public static String[] stringValues() {
+            Condition[] values = Condition.values();
+            int len = values.length;
+            String[] strings = new String[len];
+
+            for (int i = 0; i < len; i++) {
+                strings[i] = Condition.toConditionString(values[i]);
+            }
+
+            return strings;
         }
     }
 
@@ -26,15 +71,50 @@ public class Book {
     }
 
     private static int numberOfBooks;
-    private static String test;
+    // Refactor into private eventually
+    public static ArrayList<Book> allBooks = new ArrayList<>();
+    public static Book selectedBook = null;
+
+    public static Book getBookByID(String UID) {
+        Book target = null;
+
+        for (Book b : allBooks) {
+            if (b.UID.equals(UID)) {
+                target = b;
+                break;
+            }
+        }
+        return target;
+    }
+
+
+    public static void clearSelected() {
+        selectedBook = null;
+    }
+
+    public static ArrayList<Book> getBooks() {
+        return allBooks;
+    }
+
+    public static void addBook(Book book) {
+        System.out.println("Called!");
+        if (getBookByID(book.UID) == null) {
+            allBooks.add(book);
+        }
+    }
+
+    public final String UID;
 
     private String author;
     private String title;
 
     private Condition condition;
     private Status status;
+    private VBook vBook;
 
     private double price;
+
+    private boolean selected;
 
     public Book(String author, String title, double price) {
         numberOfBooks++;
@@ -42,13 +122,15 @@ public class Book {
         this.title = title;
         this.price = price;
 
-        this.condition = Condition.EXCELLENT;
-        this.status = Status.AVAILABLE;
-    }
+        condition = Condition.EXCELLENT;
+        status = Status.AVAILABLE;
 
-    public void testMethod() {
-        enum TestEnum { HELLO, GOODBYE };
-        System.out.println(TestEnum.HELLO);
+        UID = String.format("%05.0f", Math.floor(Math.random() * 10000));
+        System.out.println(UID);
+
+        vBook = new VBook(this);
+
+        allBooks.add(this);
     }
 
     public void randomizeCondition() {
@@ -79,6 +161,13 @@ public class Book {
         return this.getStatus() == Status.AVAILABLE;
     }
 
+    public void select() {
+        Book.selectedBook = this;
+    }
+
+    public boolean isSelected() {
+        return this == Book.selectedBook;
+    }
 
     @Override
     public String toString() {
@@ -89,6 +178,10 @@ public class Book {
                 ", status=" + status +
                 ", price=" + price +
                 '}';
+    }
+
+    public VBook getVBook() {
+        return vBook;
     }
 
     // * ACCESSORS * //
@@ -126,6 +219,10 @@ public class Book {
 
     public Condition getCondition() {
         return condition;
+    }
+
+    public String getConditionString() {
+        return Condition.toConditionString(condition);
     }
 
     public void setCondition(Condition condition) {
